@@ -8,10 +8,11 @@ from ldap3 import Connection, Server
 from ldap3 import SIMPLE, SUBTREE
 from ldap3.core.exceptions import LDAPBindError, LDAPConstraintViolationResult, \
     LDAPInvalidCredentialsResult, LDAPUserNameIsMandatoryError, \
-    LDAPSocketOpenError, LDAPExceptionError
+    LDAPSocketOpenError, LDAPExceptionError, LDAPPasswordIsMandatoryError
 import logging
 import os
 from os import environ, path
+from base64 import b64decode
 
 
 BASE_DIR = path.dirname(__file__)
@@ -30,7 +31,7 @@ def post_index():
     form = request.forms.getunicode
 
     def error(msg):
-        return index_tpl(username=form('username'), alerts=[('error', msg)])
+        return index_tpl(username=form('username'), alerts=[('alert-danger', msg)])
 
     if form('new-password') != form('confirm-password'):
         return error("Password doesn't match the confirmation!")
@@ -46,17 +47,67 @@ def post_index():
 
     LOG.info("Password successfully changed for: %s" % form('username'))
 
-    return index_tpl(alerts=[('success', "Password has been changed")])
+    return index_tpl(alerts=[('alert-success', "Password has been changed to: " + form('new-password'))])
 
+@route('/token/<key>', name='setup')
+def read_token(key):
+    try:
+        data = b64decode(key).decode('ascii').strip().split(' ')
+        user = data[0]
+        mail = data[1]
+        password = data[2]
+        check_password(user, password)
+    except:
+        return error_tpl(alerts=[('alert-danger', 'wrong token provided')])
+    return token_tpl(username=user)
+
+@post('/token/<key>', name='setup')
+def setup_index(key):
+    form = request.forms.getunicode
+    try:
+        data = b64decode(key).decode('ascii').strip().split(' ')
+        user = data[0]
+        mail = data[1]
+        password = data[2]
+        check_password(user, password)
+    except:
+        return error_tpl(alerts=[('alert-danger', 'wrong token provided')])
+
+    def error(msg):
+        return token_tpl(username=form('username'), alerts=[('alert-danger', msg)])
+
+    if form('new-password') != form('confirm-password'):
+        return error("Password doesn't match the confirmation!")
+
+    if len(form('new-password')) < 8:
+        return error("Password must be at least 8 characters long!")
+
+    try:
+        change_password(form('username'), password, form('new-password'))
+    except Error as e:
+        LOG.warning("Unsuccessful attempt to change password for %s: %s" % (form('username'), e))
+        return error(str(e))
+
+    LOG.info("Password successfully changed for: %s" % form('username'))
+
+    return error_tpl(alerts=[('alert-success', "Password has been changed to: " + form('new-password'))])
 
 @route('/static/<filename>', name='static')
 def serve_static(filename):
     return static_file(filename, root=path.join(BASE_DIR, 'static'))
 
+@route('/fonts/<filename>', name='fonts')
+def serve_fonts(filename):
+    return static_file(filename, root=path.join(BASE_DIR, 'fonts'))
+
+def error_tpl(**kwargs):
+    return template('error', **kwargs)
+
+def token_tpl(**kwargs):
+    return template('token', **kwargs)
 
 def index_tpl(**kwargs):
     return template('index', **kwargs)
-
 
 def connect_ldap(**kwargs):
     server = Server(host=CONF['ldap']['host'],
@@ -66,6 +117,23 @@ def connect_ldap(**kwargs):
 
     return Connection(server, raise_exceptions=True, **kwargs)
 
+def check_password(*args):
+    try:
+        if CONF['ldap'].get('type') == 'ad':
+            check_password_ad(*args)
+        else:
+            check_password_ldap(*args)
+
+    except (LDAPBindError, LDAPInvalidCredentialsResult, LDAPUserNameIsMandatoryError, LDAPPasswordIsMandatoryError):
+        raise Error('Username or password is incorrect!')
+
+    except LDAPSocketOpenError as e:
+        LOG.error('{}: {!s}'.format(e.__class__.__name__, e))
+        raise Error('Unable to connect to the remote server.')
+
+    except LDAPExceptionError as e:
+        LOG.error('{}: {!s}'.format(e.__class__.__name__, e))
+        raise Error('Encountered an unexpected error while communicating with the remote server.')
 
 def change_password(*args):
     try:
@@ -74,7 +142,7 @@ def change_password(*args):
         else:
             change_password_ldap(*args)
 
-    except (LDAPBindError, LDAPInvalidCredentialsResult, LDAPUserNameIsMandatoryError):
+    except (LDAPBindError, LDAPInvalidCredentialsResult, LDAPUserNameIsMandatoryError, LDAPPasswordIsMandatoryError):
         raise Error('Username or password is incorrect!')
 
     except LDAPConstraintViolationResult as e:
@@ -90,7 +158,6 @@ def change_password(*args):
         LOG.error('{}: {!s}'.format(e.__class__.__name__, e))
         raise Error('Encountered an unexpected error while communicating with the remote server.')
 
-
 def change_password_ldap(username, old_pass, new_pass):
     with connect_ldap() as c:
         user_dn = find_user_dn(c, username)
@@ -100,15 +167,20 @@ def change_password_ldap(username, old_pass, new_pass):
         c.bind()
         c.extend.standard.modify_password(user_dn, old_pass, new_pass)
 
+def check_password_ldap(username, password):
+    with connect_ldap() as c:
+        user_dn = find_user_dn(c, username)
 
-def change_password_ad(username, old_pass, new_pass):
+    # Note: raises LDAPUserNameIsMandatoryError when user_dn is None.
+    with connect_ldap(authentication=SIMPLE, user=user_dn, password=password) as c:
+        c.bind()
+
+def check_password_ad(username, password):
     user = username + '@' + CONF['ldap']['ad_domain']
 
-    with connect_ldap(authentication=SIMPLE, user=user, password=old_pass) as c:
+    with connect_ldap(authentication=SIMPLE, user=user, password=password) as c:
         c.bind()
         user_dn = find_user_dn(c, username)
-        c.extend.microsoft.modify_password(user_dn, new_pass, old_pass)
-
 
 def find_user_dn(conn, uid):
     search_filter = CONF['ldap']['search_filter'].replace('{uid}', uid)
