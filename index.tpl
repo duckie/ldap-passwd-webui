@@ -11,6 +11,11 @@
     <link rel="stylesheet" href="/static/bootstrap.min.css">
     <script src="/static/jquery-1.10.2.min.js"></script>
     <script src="/static/bootstrap.min.js"></script>
+    <style type="text/css">
+    input {
+      margin: 1em 0 0.5em;
+    }
+    </style>
   </head>
 
   <body>
