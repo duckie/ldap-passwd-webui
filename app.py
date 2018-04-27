@@ -159,7 +159,8 @@ def change_password(*args):
         raise Error('Encountered an unexpected error while communicating with the remote server.')
 
 def change_password_ldap(username, old_pass, new_pass):
-    with connect_ldap() as c:
+    with connect_ldap(user=CONF['ldap']['user'], password=CONF['ldap']['password']) as c:
+        c.bind()
         user_dn = find_user_dn(c, username)
 
     # Note: raises LDAPUserNameIsMandatoryError when user_dn is None.
@@ -168,7 +169,8 @@ def change_password_ldap(username, old_pass, new_pass):
         c.extend.standard.modify_password(user_dn, old_pass, new_pass)
 
 def check_password_ldap(username, password):
-    with connect_ldap() as c:
+    with connect_ldap(user=CONF['ldap']['user'], password=CONF['ldap']['password']) as c:
+        c.bind()
         user_dn = find_user_dn(c, username)
 
     # Note: raises LDAPUserNameIsMandatoryError when user_dn is None.
