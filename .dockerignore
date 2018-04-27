@@ -1,0 +1,5 @@
+doc
+.git*
+Dockerfile
+.dockerignore
+settings.ini.example
