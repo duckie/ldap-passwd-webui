@@ -195,6 +195,27 @@ def read_config():
     config = ConfigParser()
     config.read([path.join(BASE_DIR, 'settings.ini'), os.getenv('CONF_FILE', '')])
 
+    if 'WU_PAGE_TITLE' in environ:
+      config.set('html', 'page_title', environe['WU_PAGE_TITLE'])
+    if 'WU_LDAP_HOST' in environ:
+      config.set('ldap', 'host', environe['WU_LDAP_HOST'])
+    if 'WU_LDAP_PORT' in environ:
+      config.set('ldap', 'port', environe['WU_LDAP_PORT'])
+    if 'WU_LDAP_USE_SSL' in environ:
+      config.set('ldap', 'use_ssl', environe['WU_LDAP_USE_SSL'])
+    if 'WU_LDAP_SEARCH_FILTER' in environ:
+      config.set('ldap', 'search_filter', environe['WU_LDAP_SEARCH_FILTER'])
+    if 'WU_LDAP_USER' in environ:
+      config.set('ldap', 'user', environe['WU_LDAP_USER'])
+    if 'WU_LDAP_PASSWORD' in environ:
+      config.set('ldap', 'password', environe['WU_LDAP_PASSWORD'])
+    if 'WU_SERVER_MODE' in environ:
+      config.set('server', 'server', environe['WU_SERVER_MODE'])
+    if 'WU_SERVER_HOST' in environ:
+      config.set('server', 'host', environe['WU_SERVER_HOST'])
+    if 'WU_SERVER_PORT' in environ:
+      config.set('server', 'port', environe['WU_SERVER_PORT'])
+
     return config
 
 
