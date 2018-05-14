@@ -193,6 +193,12 @@ def find_user_dn(conn, uid):
 
 def read_config():
     config = ConfigParser()
+
+    # create sections just in case
+    config.add_section('html')
+    config.add_section('ldap')
+    config.add_section('server')
+
     config.read([path.join(BASE_DIR, 'settings.ini'), os.getenv('CONF_FILE', '')])
 
     if 'WU_PAGE_TITLE' in environ:
