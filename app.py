@@ -203,6 +203,8 @@ def read_config():
 
     if 'WU_PAGE_TITLE' in environ:
       config.set('html', 'page_title', environ['WU_PAGE_TITLE'])
+    if 'WU_LDAP_TYPE' in environ:
+      config.set('ldap', 'type', environ['WU_LDAP_TYPE'])
     if 'WU_LDAP_HOST' in environ:
       config.set('ldap', 'host', environ['WU_LDAP_HOST'])
     if 'WU_LDAP_PORT' in environ:
