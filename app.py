@@ -57,7 +57,8 @@ def read_token(key):
         mail = data[1]
         password = data[2]
         check_password(user, password)
-    except:
+    except Exception as e:
+        LOG.error('{}: {!s}'.format(e.__class__.__name__, e))
         return error_tpl(alerts=[('alert-danger', 'wrong token provided')])
     return token_tpl(username=user)
 
