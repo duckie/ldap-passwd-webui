@@ -159,6 +159,17 @@ def change_password(*args):
         LOG.error('{}: {!s}'.format(e.__class__.__name__, e))
         raise Error('Encountered an unexpected error while communicating with the remote server.')
 
+
+def change_password_ad(username, old_pass, new_pass):
+    with connect_ldap(user=CONF['ldap']['user'], password=CONF['ldap']['password']) as c:
+        c.bind()
+        user_dn = find_user_dn(c, username)
+
+    # Note: raises LDAPUserNameIsMandatoryError when user_dn is None.
+    with connect_ldap(authentication=SIMPLE, user=user_dn, password=old_pass) as c:
+        c.bind()
+        c.extend.microsoft.modifyPassword.ad_modify_password(user_dn, old_pass, new_pass,  controls=None)
+
 def change_password_ldap(username, old_pass, new_pass):
     with connect_ldap(user=CONF['ldap']['user'], password=CONF['ldap']['password']) as c:
         c.bind()
