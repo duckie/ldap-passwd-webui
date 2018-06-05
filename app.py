@@ -212,6 +212,8 @@ def read_config():
       config.set('ldap', 'port', environ['WU_LDAP_PORT'])
     if 'WU_LDAP_USE_SSL' in environ:
       config.set('ldap', 'use_ssl', environ['WU_LDAP_USE_SSL'])
+    if 'WU_LDAP_AD_DOMAIN' in environ:
+      config.set('ldap', 'ad_domain', environ['WU_LDAP_AD_DOMAIN'])
     if 'WU_LDAP_BASE' in environ:
       config.set('ldap', 'base', environ['WU_LDAP_BASE'])
     if 'WU_LDAP_SEARCH_FILTER' in environ:
