@@ -163,8 +163,10 @@ def change_password_ad(username, old_pass, new_pass):
     user = username + '@' + CONF['ldap']['ad_domain']
 
     with connect_ldap(authentication=SIMPLE, user=CONF['ldap']['user'], password=CONF['ldap']['password']) as c:
+        LOG.info("Attempt to change password for user %s" % user)
         c.bind()
         user_dn = find_user_dn(c, username)
+        LOG.info("DN: %s" % user_dn)
         c.extend.microsoft.modify_password(user_dn, new_pass)
 
 def change_password_ldap(username, old_pass, new_pass):
