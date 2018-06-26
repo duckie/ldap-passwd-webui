@@ -47,7 +47,7 @@ def post_index():
 
     LOG.info("Password successfully changed for: %s" % form('username'))
 
-    return index_tpl(alerts=[('alert-success', "Password has been changed to: " + form('new-password'))])
+    return index_tpl(alerts=[('alert-success', "Password has been successfully changed.")])
 
 @route('/token/<key>', name='setup')
 def read_token(key):
